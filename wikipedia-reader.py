@@ -4,12 +4,21 @@ import wikipedia
 
 def main():
     _check_create_directory('pages')
-    args = sys.argv[1:]
-    for name in args:
+    titles = sys.argv[1:]
+    _get_wikipedia_page_content(titles)
+
+
+def _get_wikipedia_page_content(titles: list) -> None:
+    """
+    :param titles: list of wikipedia page titles
+    :return: None but create a directory 'pages' and save each content in separate file
+    """
+    for name in titles:
         with open(f'pages/{name}.txt', 'w', encoding='utf8') as f:
-            content = wikipedia.page(name).content
-            print(content)
-            f.write(content)
+            page = wikipedia.page(name)
+            print(page.title)
+            print(page.content)
+            f.write(page.content)
 
 
 def _check_create_directory(directory):
