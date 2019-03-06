@@ -117,38 +117,6 @@ while True:
         q[i] = q[i].lower()
 
     matches = []
-    words = [q[0]]
-    operators = []
-    rad1 = -1
-    rad2 = -1
-    if q[1] == 'near' and q[4] == 'near':
-        words.append(q[3])
-        words.append(q[6])
-        operators.append('near')
-        operators.append('near')
-        rad1 = int(q[2])
-        rad2 = int(q[5])
-
-    elif q[1] == 'near':
-        words.append(q[3])
-        words.append(q[5])
-        operators.append('near')
-        operators.append(q[4])
-        rad1 = int(q[2])
-
-    elif q[3] == 'near':
-        words.append(q[2])
-        words.append(q[5])
-        operators.append(q[1])
-        operators.append('near')
-        rad1 = int(q[4])
-    else:
-        words.append(q[2])
-        words.append(q[4])
-        operators.append(q[1])
-        operators.append(q[3])
-
-    if q[1] == 'and':
 
     if len(q) == 1 and q[0] == '/exit':
         exit()
