@@ -14,7 +14,7 @@ def _get_wikipedia_page_content(titles: list) -> None:
     :return: None but create a directory 'pages' and save each content in separate file
     """
     for name in titles:
-        with open(f'pages/{name}.txt', 'w', encoding='utf8') as f:
+        with open(f'pages/{name}', 'w', encoding='utf8') as f:
             page = wikipedia.page(name)
             print(page.title)
             print(page.content)
