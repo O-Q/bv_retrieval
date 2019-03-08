@@ -66,20 +66,24 @@ class Query:
     def _not_operation(self, not_word, filtered_docs):
         if not_word not in stop_words:
             doc_to_remove = set()
-            docs_positions: dict = self.model[not_word]
-            for doc in filtered_docs:
-                if docs_positions.get(doc):
-                    doc_to_remove.add(doc)
-            filtered_docs.difference_update(doc_to_remove)
+            docs_positions: dict = self.model.get(not_word)
+            if docs_positions:
+                for doc in filtered_docs:
+                    if docs_positions.get(doc):
+                        doc_to_remove.add(doc)
+                filtered_docs.difference_update(doc_to_remove)
 
     def _and_operation(self, word, filtered_docs):
         if word not in stop_words:
             doc_to_remove = set()
-            docs_positions: dict = self.model[word]
-            for doc in filtered_docs:
-                if not docs_positions.get(doc):
-                    doc_to_remove.add(doc)
-            filtered_docs.difference_update(doc_to_remove)
+            docs_positions: dict = self.model.get(word)
+            if docs_positions:
+                for doc in filtered_docs:
+                    if not docs_positions.get(doc):
+                        doc_to_remove.add(doc)
+                filtered_docs.difference_update(doc_to_remove)
+            else:
+                filtered_docs.clear()
 
     def _with_operation(self, first_word, second_word, filtered_docs):
         # STOPWORDS ?
