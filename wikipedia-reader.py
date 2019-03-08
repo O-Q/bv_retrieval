@@ -10,15 +10,22 @@ def main():
 
 def _get_wikipedia_page_content(titles: list) -> None:
     """
-    :param titles: list of wikipedia page titles
+    :param titles: list of wikipedia page titles or RANDOM `number`
     :return: None but create a directory 'pages' and save each content in separate file
     """
-    for name in titles:
-        with open(f'pages/{name}', 'w', encoding='utf8') as f:
-            page = wikipedia.page(name)
-            print(page.title)
-            print(page.content)
-            f.write(page.content)
+    if 'RANDOM' in titles[0]:
+        titles = wikipedia.random(int(titles[1]))
+
+    for title in titles:
+        page = wikipedia.page(title)
+        _save_page(page)
+
+
+def _save_page(page):
+    print(page.title)
+    print(page.content)
+    with open(f'pages/{page.title}', 'w', encoding='utf8') as f:
+        f.write(page.content)
 
 
 def _check_create_directory(directory):

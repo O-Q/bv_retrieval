@@ -43,7 +43,8 @@ def main():
                     doc += line
         docs[doc_name] = doc
     retrieval_model.fit(docs)
-    json.dump(retrieval_model.model, open('retrieval_inverted_index.model', 'w'))
+    json.dump(doc_names, open('doc_names.list', 'w'))
+    json.dump(retrieval_model.model, open('retrieval_inverted_index.dict', 'w'))
 
 
 def _remove_whitespaces(line):
