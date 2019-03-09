@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from collections import defaultdict
 
 from nltk.corpus import stopwords
 from nltk import PorterStemmer
@@ -10,7 +11,7 @@ class Query:
     keywords = ['AND', 'OR', 'NOT', 'WITH', 'NEAR']
 
     def __init__(self, model_address='retrieval_inverted_index.dict', doc_names_address='doc_names.list'):
-        self.model: dict = json.load(open(model_address))
+        self.model = defaultdict(lambda: defaultdict(list), json.load(open(model_address)))
         self.doc_names: set = set(json.load(open(doc_names_address)))
 
     def query(self, text: str) -> set:
@@ -35,11 +36,17 @@ class Query:
                         # current operation is empty(empty or OR) or AND
                         self._not_operation(term, filtered_docs)
                     elif current_operation == 'WITH':
-                        # with not
-                        print()
+                        # WITH NOT(NOT WITH)
+                        first_word = terms[index - 3]
+                        second_word = term
+                        self._not_with_operation(first_word, second_word, filtered_docs)
                     else:
-                        # NEAR not
-                        print()
+                        # NEAR NOT(NOT NEAR)
+                        if current_operation[4:].isdigit():
+                            max_dist = int(current_operation[4:])
+                            first_word = terms[index - 3]
+                            second_word = term
+                            self._not_near_operation(first_word, second_word,max_dist, filtered_docs)
                 else:  # without not
                     # intersect with filtered_docs (AND-like operation)
                     self._and_operation(term, filtered_docs)
@@ -92,7 +99,7 @@ class Query:
             expected_positions_second_word = {position + 1 for position in self.model[first_word][doc]}
             positions_second_word = set(self.model[second_word][doc])
             if not expected_positions_second_word.intersection(positions_second_word):
-                filtered_docs.add(doc)
+                doc_to_remove.add(doc)
         filtered_docs.difference_update(doc_to_remove)
 
     def _near_operation(self, first_word, second_word, max_dist, filtered_docs):
@@ -106,6 +113,32 @@ class Query:
                                                   self.model[first_word][doc] if dist != 0}
                 if expected_positions_second_word.intersection(positions_second_word):
                     invalid_doc = False
+                    break
+            if invalid_doc:
+                doc_to_remove.add(doc)
+        filtered_docs.difference_update(doc_to_remove)
+
+    def _not_with_operation(self, first_word, second_word, filtered_docs):
+        # STOPWORDS ?
+        doc_to_remove = set()
+        for doc in filtered_docs:
+            expected_positions_second_word = {position + 1 for position in self.model[first_word][doc]}
+            positions_second_word = set(self.model[second_word][doc])
+            if expected_positions_second_word.intersection(positions_second_word):
+                doc_to_remove.add(doc)
+        filtered_docs.difference_update(doc_to_remove)
+
+    def _not_near_operation(self, first_word, second_word, max_dist, filtered_docs):
+        # STOPWORDS ?
+        doc_to_remove = set()
+        for doc in filtered_docs:
+            invalid_doc = False
+            positions_second_word = set(self.model[second_word][doc])
+            for dist in range(-max_dist, max_dist):
+                expected_positions_second_word = {position + dist for position in
+                                                  self.model[first_word][doc] if dist != 0}
+                if expected_positions_second_word.intersection(positions_second_word):
+                    invalid_doc = True
                     break
             if invalid_doc:
                 doc_to_remove.add(doc)
