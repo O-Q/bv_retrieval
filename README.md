@@ -20,8 +20,13 @@ Take query and search in modela created in `booleanretrieval.py`. (`retrieval_in
 also take keywords (`AND`, `OR`, `WITH`, `NEAR` and `NOT`).
 ##### Example:
 Search: `valve AND dota`
+
 Search: `valve OR NOT dota`
+
 Search: `valve NEAR5 dota`
+
 Search: `valve WITH dota`
+
 Search: `valve NOT WITH dota`
+
 Search: `\exit`
