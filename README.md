@@ -1,8 +1,8 @@
 # Boolean Retrieval with Positional Indexing
 ### wikipedia-reader.py
-- Take some arguments as wikipedia article titles and save their contents into `pages` folder.
+- Takes some arguments as wikipedia article titles and save their contents into `pages` folder.
 
-- Take `RANDOM $number` to save `$number` wikipedia article(s).
+- Takes `RANDOM $number` to save `$number` wikipedia article(s).
 ##### Examples:
 ` python .\wikipedia-reader.py "Project I.G.I." "Dota 2"`
 
@@ -16,8 +16,8 @@ import nltk
 nltk.download(['punkt','stopwords'])
 ```
 ### query.py
-- Take query and search in modela created in `booleanretrieval.py`. (`retrieval_inverted_index.dict` and `doc_names.list`)
-- Also take keywords (`AND`, `OR`, `WITH`, `NEAR` and `NOT`).
+- Takes query and search in modela created in `booleanretrieval.py`. (`retrieval_inverted_index.dict` and `doc_names.list`)
+- Also takes keywords (`AND`, `OR`, `WITH`, `NEAR` and `NOT`).
 ##### Example:
 Search: `valve dota`
 
