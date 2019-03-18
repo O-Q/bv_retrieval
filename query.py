@@ -2,6 +2,7 @@ import json
 import os
 import time
 from collections import defaultdict
+from math import log10
 
 from nltk.corpus import stopwords
 from nltk import PorterStemmer
@@ -11,10 +12,13 @@ class Query:
     keywords = ['AND', 'OR', 'NOT', 'WITH', 'NEAR']
 
     def __init__(self, model_address='retrieval_inverted_index.dict', doc_names_address='doc_names.list'):
-        self.model = defaultdict(lambda: defaultdict(list), json.load(open(model_address)))
+        self.model = defaultdict(
+            lambda: defaultdict(lambda: {'tf_idf': float(), 'normalized_tf_idf': float(), 'positions': list()}),
+            json.load(open(model_address)))
         self.doc_names: set = set(json.load(open(doc_names_address)))
+        self.doc_count = len(self.doc_names)
 
-    def query(self, text: str) -> set:
+    def query(self, text: str, vertor_space=True):
         or_filter_list = list()
         filtered_docs: set = self.doc_names.copy()
         terms = text.split()
@@ -46,7 +50,7 @@ class Query:
                             max_dist = int(current_operation[4:])
                             first_word = terms[index - 3]
                             second_word = term
-                            self._not_near_operation(first_word, second_word,max_dist, filtered_docs)
+                            self._not_near_operation(first_word, second_word, max_dist, filtered_docs)
                 else:  # without not
                     # intersect with filtered_docs (AND-like operation)
                     self._and_operation(term, filtered_docs)
@@ -68,7 +72,24 @@ class Query:
         result = set()
         for filtered_docs in or_filter_list:
             result = result.union(filtered_docs)
-        return result
+
+        # vector ranking
+        if vertor_space and result:
+            doc_tf_idf_multiply = defaultdict(float)
+            for token in text.split():
+                if token not in self.keywords and token.find('NEAR') != 0:
+                    print(token)
+                    query_idf = log10(self.doc_count / len(self.model[token]))
+                    query_tf = text.count(token) / len(text)
+                    query_tf_idf = query_tf * query_idf
+                    for doc_name in result:
+                        doc_tf_idf = self.model[token][doc_name]
+                        if doc_tf_idf:
+                            doc_tf_idf_multiply[doc_name] += query_tf_idf * doc_tf_idf['normalized_tf_idf']
+            sorted_result = sorted(doc_tf_idf_multiply.items(), key=lambda kv: kv[1], reverse=True)
+            return sorted_result
+        else:
+            return result
 
     def _not_operation(self, not_word, filtered_docs):
         if not_word not in stop_words:
@@ -76,7 +97,8 @@ class Query:
             docs_positions: dict = self.model.get(not_word)
             if docs_positions:
                 for doc in filtered_docs:
-                    if docs_positions.get(doc):
+                    x = docs_positions.get(doc)
+                    if x and x.get('positions'):
                         doc_to_remove.add(doc)
                 filtered_docs.difference_update(doc_to_remove)
 
@@ -86,7 +108,8 @@ class Query:
             docs_positions: dict = self.model.get(word)
             if docs_positions:
                 for doc in filtered_docs:
-                    if not docs_positions.get(doc):
+                    x = docs_positions.get(doc)
+                    if not x or not x.get('positions'):
                         doc_to_remove.add(doc)
                 filtered_docs.difference_update(doc_to_remove)
             else:
@@ -96,8 +119,8 @@ class Query:
         # STOPWORDS ?
         doc_to_remove = set()
         for doc in filtered_docs:
-            expected_positions_second_word = {position + 1 for position in self.model[first_word][doc]}
-            positions_second_word = set(self.model[second_word][doc])
+            expected_positions_second_word = {position + 1 for position in self.model[first_word][doc]['positions']}
+            positions_second_word = set(self.model[second_word][doc]['positions'])
             if not expected_positions_second_word.intersection(positions_second_word):
                 doc_to_remove.add(doc)
         filtered_docs.difference_update(doc_to_remove)
@@ -107,10 +130,10 @@ class Query:
         doc_to_remove = set()
         for doc in filtered_docs:
             invalid_doc = True
-            positions_second_word = set(self.model[second_word][doc])
+            positions_second_word = set(self.model[second_word][doc]['positions'])
             for dist in range(-max_dist, max_dist):
                 expected_positions_second_word = {position + dist for position in
-                                                  self.model[first_word][doc] if dist != 0}
+                                                  self.model[first_word][doc]['positions'] if dist != 0}
                 if expected_positions_second_word.intersection(positions_second_word):
                     invalid_doc = False
                     break
@@ -122,8 +145,8 @@ class Query:
         # STOPWORDS ?
         doc_to_remove = set()
         for doc in filtered_docs:
-            expected_positions_second_word = {position + 1 for position in self.model[first_word][doc]}
-            positions_second_word = set(self.model[second_word][doc])
+            expected_positions_second_word = {position + 1 for position in self.model[first_word][doc]['positions']}
+            positions_second_word = set(self.model[second_word][doc]['positions'])
             if expected_positions_second_word.intersection(positions_second_word):
                 doc_to_remove.add(doc)
         filtered_docs.difference_update(doc_to_remove)
@@ -133,10 +156,10 @@ class Query:
         doc_to_remove = set()
         for doc in filtered_docs:
             invalid_doc = False
-            positions_second_word = set(self.model[second_word][doc])
+            positions_second_word = set(self.model[second_word][doc]['positions'])
             for dist in range(-max_dist, max_dist):
                 expected_positions_second_word = {position + dist for position in
-                                                  self.model[first_word][doc] if dist != 0}
+                                                  self.model[first_word][doc]['positions'] if dist != 0}
                 if expected_positions_second_word.intersection(positions_second_word):
                     invalid_doc = True
                     break
@@ -172,7 +195,7 @@ def main():
             clean_text = text_cleaner(text)
             print(f'text after cleaning: {clean_text}')
             print('searching...')
-            result_docs: set = q.query(clean_text)
+            result_docs = q.query(clean_text)
             end = time.time()
             print(f'{len(result_docs)} results ({(end - start):.2f} seconds)')
             for result in result_docs:
