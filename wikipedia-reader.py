@@ -49,7 +49,7 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, bar_l
     """
     percents = f'{100 * (iteration / float(total)):.2f}'
     filled_length = int(round(bar_length * iteration / float(total)))
-    bar = f'{"█" * filled_length}{"-" * (bar_length - filled_length)}'
+    bar = f'{fill * filled_length}{"-" * (bar_length - filled_length)}'
     sys.stdout.write(f'\r{prefix} |{bar}| {percents}% {suffix}'),
 
 
