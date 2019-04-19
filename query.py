@@ -12,6 +12,7 @@ class Query:
     keywords = ['AND', 'OR', 'NOT', 'WITH', 'NEAR']
 
     def __init__(self, model_address='retrieval_inverted_index.dict', doc_names_address='doc_names.list'):
+        # TODO: defaultdict is not properly working
         self.model = defaultdict(
             lambda: defaultdict(lambda: {'tf_idf': float(), 'normalized_tf_idf': float(), 'positions': list()}),
             json.load(open(model_address)))
@@ -83,9 +84,10 @@ class Query:
                     query_tf = text.count(token) / len(text)
                     query_tf_idf = query_tf * query_idf
                     for doc_name in result:
-                        doc_tf_idf = self.model[token][doc_name]
-                        if doc_tf_idf:
-                            doc_tf_idf_multiply[doc_name] += query_tf_idf * doc_tf_idf['normalized_tf_idf']
+                        if self.model[token].get(doc_name):
+                            doc_tf_idf = self.model[token][doc_name]
+                            if doc_tf_idf:
+                                doc_tf_idf_multiply[doc_name] += query_tf_idf * doc_tf_idf['normalized_tf_idf']
             sorted_result = sorted(doc_tf_idf_multiply.items(), key=lambda kv: kv[1], reverse=True)
             return sorted_result
         else:

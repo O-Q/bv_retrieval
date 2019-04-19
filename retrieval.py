@@ -1,5 +1,4 @@
 # Create positional inverted indexing model
-import pickle
 from sys import argv
 import json
 from os import listdir
@@ -36,26 +35,33 @@ class Retrieval:
 
     def fit(self, docs: dict, model='vector') -> defaultdict:
         if model == 'vector':
+            name_stemmed_tokens_docs = dict()
+            print('Generating Vector Space Model...')
             for doc_name in docs.keys():
                 tokens = self._stem_filter_doc(docs[doc_name])
+                name_stemmed_tokens_docs[doc_name] = tokens
                 for pos, token in enumerate(tokens):
                     self.model[token][doc_name]['positions'].append(pos)
+            print('Stemming and Positions Docs DONE!')
             for token in self.model.keys():
                 idf = self._idf(token)
                 for doc_name in self.model[token].keys():
-                    tf = self._tf(token, docs[doc_name])
+                    tf = self._tf(token, name_stemmed_tokens_docs[doc_name])
                     tf_idf = tf * idf
                     self.model[token][doc_name]['tf_idf'] = tf_idf
+            print('Calculating TF-IDF DONE!')
             for token in self.model.keys():
                 for doc_name in self.model[token].keys():
                     self.model[token][doc_name]['normalized_tf_idf'] = self._tf_idf_normalizer(
-                        self.model[token][doc_name]['tf_idf'], docs[doc_name], doc_name)
+                        self.model[token][doc_name]['tf_idf'], name_stemmed_tokens_docs[doc_name], doc_name)
+            print('TF-IDF Normalization DONE!')
         elif model == 'boolean':
+            print('Generating Boolean Model...')
             for doc_name in docs.keys():
                 tokens = self._stem_filter_doc(docs[doc_name])
                 for pos, token in enumerate(tokens):
                     self.model[token][doc_name]['positions'].append(pos)
-
+            print('Stemming and Positions Docs DONE!')
         return self.model
 
     def _stem_filter_doc(self, doc: str) -> list:
@@ -63,15 +69,13 @@ class Retrieval:
         stemmed_filtered_tokens = [self.ps.stem(word) for word in words_tokens if word.lower() not in self.stop_words]
         return stemmed_filtered_tokens
 
-    def _tf(self, token: str, doc: str) -> float:
-        stemmed_filtered_tokens = self._stem_filter_doc(doc)
+    def _tf(self, token: str, stemmed_filtered_tokens: list) -> float:
         return stemmed_filtered_tokens.count(token) / len(stemmed_filtered_tokens)
 
     def _idf(self, token: str) -> float:
         return log10(self.docs_count / len(self.model[token]))
 
-    def _tf_idf_normalizer(self, tf_idf: float, doc: str, doc_name: str) -> float:
-        stemmed_filtered_tokens = self._stem_filter_doc(doc)
+    def _tf_idf_normalizer(self, tf_idf: float, stemmed_filtered_tokens: list, doc_name: str) -> float:
         sum_square_tf_idf = float()
         for token in stemmed_filtered_tokens:
             sum_square_tf_idf += self.model[token][doc_name]['tf_idf'] ** 2
