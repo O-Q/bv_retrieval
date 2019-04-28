@@ -1,11 +1,12 @@
 import json
 import os
 import time
-from collections import defaultdict
+from collections import defaultdict, Counter
 from math import log10
+from sys import argv
 
-from nltk.corpus import stopwords
 from nltk import PorterStemmer
+from nltk.corpus import stopwords
 
 
 class Query:
@@ -19,7 +20,7 @@ class Query:
         self.doc_names: set = set(json.load(open(doc_names_address)))
         self.doc_count = len(self.doc_names)
 
-    def query(self, text: str, vertor_space=True):
+    def query(self, text: str, vector_space=True):
         or_filter_list = list()
         filtered_docs: set = self.doc_names.copy()
         terms = text.split()
@@ -66,28 +67,29 @@ class Query:
                             second_word = term
                             self._near_operation(first_word, second_word, max_dist, filtered_docs)
                         else:
-                            return {'NEAR OPERATION ERROR!!!'}
+                            raise Exception('NOT Operation Error')
 
         # Finally or
         or_filter_list.append(filtered_docs)
         result = set()
         for filtered_docs in or_filter_list:
             result = result.union(filtered_docs)
-
         # vector ranking
-        if vertor_space and result:
+        if vector_space and result:
             doc_tf_idf_multiply = defaultdict(float)
+            max_frequency = Counter([token for token in text.split() if
+                                     token not in self.keywords and token.find('NEAR') != 0]).most_common(1)[0][1]
             for token in text.split():
+                if token == 'NOT':
+                    raise Exception('NOT Operation Error')
                 if token not in self.keywords and token.find('NEAR') != 0:
-                    print(token)
-                    query_idf = log10(self.doc_count / len(self.model[token]))
-                    query_tf = text.count(token) / len(text)
-                    query_tf_idf = query_tf * query_idf
+                    token_in_query_idf = log10(self.doc_count / len(self.model[token]))
+                    token_in_query_tf = text.count(token) / max_frequency
+                    token_in_query_tf_idf = token_in_query_tf * token_in_query_idf
                     for doc_name in result:
                         if self.model[token].get(doc_name):
-                            doc_tf_idf = self.model[token][doc_name]
-                            if doc_tf_idf:
-                                doc_tf_idf_multiply[doc_name] += query_tf_idf * doc_tf_idf['normalized_tf_idf']
+                            token_in_doc_tf_idf = self.model[token][doc_name]['normalized_tf_idf']
+                            doc_tf_idf_multiply[doc_name] += token_in_query_tf_idf * token_in_doc_tf_idf
             sorted_result = sorted(doc_tf_idf_multiply.items(), key=lambda kv: kv[1], reverse=True)
             return sorted_result
         else:
@@ -187,21 +189,25 @@ def text_cleaner(text: str):
 
 def main():
     q = Query()
+    is_vector = len(argv) < 2 or argv[1] == 'vector'
     while True:
         text = input('Search: ')
         if text == r'\exit':
             exit()
         else:
             os.system('cls' if os.name == 'nt' else 'clear')
-            start = time.time()
-            clean_text = text_cleaner(text)
-            print(f'text after cleaning: {clean_text}')
-            print('searching...')
-            result_docs = q.query(clean_text)
-            end = time.time()
-            print(f'{len(result_docs)} results ({(end - start):.2f} seconds)')
-            for result in result_docs:
-                print(f'- {result}')
+            try:
+                start = time.time()
+                clean_text = text_cleaner(text)
+                print(f'text after cleaning: {clean_text}')
+                print('searching...')
+                result_docs = q.query(clean_text, vector_space=is_vector)
+                end = time.time()
+                print(f'{len(result_docs)} results ({(end - start):.2f} seconds)')
+                for result in result_docs:
+                    print(f'- {result}')
+            except Exception as e:
+                print(str(e))
 
 
 if __name__ == '__main__':
