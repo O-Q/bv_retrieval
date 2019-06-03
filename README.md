@@ -1,4 +1,4 @@
-# Boolean Retrieval with Positional Indexing
+# Boolean Retrieval and Vector Space Model with Positional Indexing
 ### wikipedia-reader.py
 - Takes some arguments as wikipedia article titles and save their contents into `pages` folder.
 
@@ -7,8 +7,9 @@
 ` python .\wikipedia-reader.py "Project I.G.I." "Dota 2"`
 
 ` python .\wikipedia-reader.py RANDOM 5`
-### booleanretrieval.py
-Get files in `pages` directory and after cleaning and filtering, make `dict(dict(list))` model which is `word`, `documnet name` and `positional index`.
+### retrieval.py
+Get files in `pages` directory and after cleaning and filtering, make `dict(dict({float, float, list, int}))` model which is `word`, `documnet name` and `{TF_IDF, normalized TF-IDF, positional index, count}`.
+- For changing to boolean retrival run file with arg `boolean` and `vector` for vector space model(default).
 ##### NOTE
 `stopwords` and `punkt` from nltk is required.
 ```
@@ -16,8 +17,9 @@ import nltk
 nltk.download(['punkt','stopwords'])
 ```
 ### query.py
-- Takes query and search in modela created in `booleanretrieval.py`. (`retrieval_inverted_index.dict` and `doc_names.list`)
-- Also takes keywords (`AND`, `OR`, `WITH`, `NEAR` and `NOT`).
+- Takes query and search in models created in `retrieval.py`. (`retrieval_inverted_index.dict` and `doc_names.list`)
+- Also takes keywords (`AND`, `OR`, `WITH`, `NEAR` and `NOT`) for boolean retrieval.
+- For changing to boolean retrival run file with arg `boolean` and `vector` for vector space model(default).
 ##### Example:
 Search: `valve dota`
 
